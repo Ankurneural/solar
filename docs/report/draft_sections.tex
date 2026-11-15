@@ -1,8 +1,7 @@
 % Draft body for the competition's ACM sigconf Overleaf template (overleaf.com/read/vjztpvrnbrdh).
 % Paste the sections into the template; keep its fixed title/subtitle/intro/acknowledgment text.
-% Limit: 4 pages excluding references. \todo{} marks numbers to update for the final submission.
+% Limit: 4 pages excluding references. Figures: fig1_pipeline.pdf, oof_20110429135554Bh_zoom1.jpg, oof_20110128174814Mh_zoom0.jpg.
 % Sources: docs/EXPERIMENTS.md (OOF), runs/jobs/submissions.csv (LB), docs/COMPETITION_NOTES.md.
-\newcommand{\todo}[1]{\textcolor{red}{#1}}
 
 \begin{abstract}
 We segment solar filaments in full-disk GONG H$\alpha$ images in two stages: dense U-Net probability
@@ -13,7 +12,7 @@ instances from 10 threshold levels, scores each with a gradient-boosted model an
 with the filament's principal axis, and keeps the subset that maximises expected panoptic quality. With
 5-fold time-grouped cross-validation the accuracy configuration (8 stage-1 members) reaches an
 out-of-fold PQ of 0.467 at 18.7\,s per image and the efficient configuration (3 members) 0.462 at
-3.3\,s per image on one GPU (one expert scored against the other experts: 0.336). Both score 0.40 on
+3.3\,s per image on one GPU (one expert scored against the other experts: 0.340). Both score 0.40 on
 the public leaderboard, using only the supplied test image.
 \end{abstract}
 
@@ -22,8 +21,8 @@ The training set has 707 frames from six GONG sites (2011--2022) with 1,154 anno
 annotators; 58\% of the frames have a single annotator. PQ is computed against every annotation set
 separately and pooled, so a prediction is rewarded for matching each annotator's filament with
 IoU $>0.5$. Two properties of the labels shape the design.
-\textbf{(1) Annotators disagree.} One expert scored against the others reaches PQ 0.336 (SQ 0.634,
-RQ 0.530). Annotators draw 4.3 to 10.5 filaments per frame on average, their median filament area
+\textbf{(1) Annotators disagree.} One expert scored against the others reaches PQ 0.340 (SQ 0.634,
+RQ 0.536). Annotators draw 4.3 to 10.5 filaments per frame on average, their median filament area
 differs by $2\times$, and the annotator of a frame cannot be inferred from its site or year.
 We therefore predict the \emph{consensus}: targets are the per-pixel mean over annotators.
 \textbf{(2) The annotation protocol} \cite{magfilo} skips filaments beyond $\pm70^\circ$ from the
@@ -119,25 +118,30 @@ magenta) disagree on barbs and ends; the refined prediction (green = matched) fo
 \label{fig:morphology}
 \end{figure}
 On the final OOF predictions of configuration A (organisers' metric, 1,154 annotation sets) the system reaches a mean
-foreground Dice of 0.669 per annotation set (one expert against the others: 0.612), a median matched IoU
-of 0.69 (expert: 0.63), and 64.7\% of GT filaments matched with IoU $>0.5$ (21.6\% untouched, 3.8\%
+foreground Dice of 0.669 per annotation set (one expert against the others: 0.614), a median matched IoU
+of 0.69 (expert: 0.63), and 64.7\% of GT filaments matched with IoU $>0.5$ (expert: 53.6\%; 21.6\% untouched, 3.8\%
 with IoU $<0.3$, 10.0\% near misses at 0.3--0.5). Fragmentation is rare: 2.5\% of GT filaments touch
-more than one prediction and 1.9\% of predictions touch more than one GT filament (expert: 3.7\% / 2.6\%).
+more than one prediction and 1.9\% of predictions touch more than one GT filament (expert: 3.2\% for both).
 Missed filaments are mostly small ($<700$\,px) or drawn by only one of several annotators: in an earlier
 error analysis of the ensemble, filaments drawn by all annotators were matched 81\% of the time, those
 drawn by one of several 18\%.
 
 \section{Efficiency}
-Test inference on one RTX 4090, uncached, per $2048^2$ image:
+Table~\ref{tab:speed} gives the test inference time on one RTX 4090, uncached, per $2048^2$ image.
+\begin{table}[t]
+\caption{Inference time per image (RTX 4090) against accuracy.}
+\label{tab:speed}
+\small
 \begin{tabular}{lccc}
 \toprule
 Configuration & s/image & OOF PQ & Public \\
 \midrule
-8 stage-1 models $\times$ 5 folds, D4 TTA & 18.7 & 0.467 & 0.40 \\
-8 models $\times$ 5 folds, hflip TTA & 6.7 & -- & 0.40 \\
-3 models $\times$ 5 folds, hflip TTA (tuned on hflip OOF maps) & 3.3 & 0.462 & 0.40 \\
+A: 8 members $\times$ 5 folds, D4 & 18.7 & 0.467 & 0.40 \\
+A with hflip TTA & 6.7 & -- & 0.40 \\
+B: 3 members $\times$ 5 folds, hflip & 3.3 & 0.462 & 0.40 \\
 \bottomrule
 \end{tabular}
+\end{table}
 Stage 1 dominates the cost: per image, the fast configuration spends 0.2\,s on pre-processing, 1.4\,s on
 stage 1 (two 512-crop ConvNeXt-T members 0.65\,s each, the full-disk member 0.1\,s), 0.1\,s on candidates and
 GBM, and 0.8\,s on the five refiners; the rest is image I/O and RLE encoding. D4 TTA costs 3.6$\times$ hflip

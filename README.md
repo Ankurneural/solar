@@ -31,7 +31,7 @@ score exceeds τ ≈ PQ/2. That is the rule under which adding a filament raises
 | **A** accuracy | `runs/w11_all_768b` | 8 × 5 folds | D4 | 0.4667 | 0.40 | 18.7 |
 | **B** efficiency | `runs/w_s2_44h` | 3 × 5 folds | hflip | 0.4623 | 0.40 | 3.3 |
 
-**A is the final submission; B is its efficient variant** (also scored on the public leaderboard). A is ahead of B by +0.0045 OOF PQ (paired bootstrap over 14-day groups: 95% interval +0.0016 to +0.0073). One expert scored against the other experts reaches PQ 0.336. Every number, ablation and negative result is in
+**A is the final submission; B is its efficient variant** (also scored on the public leaderboard). A is ahead of B by +0.0045 OOF PQ (paired bootstrap over 14-day groups: 95% interval +0.0016 to +0.0073). One expert scored against the other experts reaches PQ 0.340. Every number, ablation and negative result is in
 [docs/EXPERIMENTS.md](docs/EXPERIMENTS.md); the report draft is in [docs/report/](docs/report/).
 
 ## Reproduce the submissions
