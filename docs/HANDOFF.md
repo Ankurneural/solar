@@ -116,6 +116,8 @@ submitted through a separate Google form from the organizers (user has it); chec
   submitted file, 41.6 s/image). **11-14 20:11 CST: notebook `ankurparmar/solarfragments-reproduce` is PUBLIC too** (user toggled it
   in the UI; signed-out HTTP 200, live metadata `is_private: false`, input dataset attached). The local
   `runs/kaggle_kernel/kernel-metadata.json` now says `"is_private": false`, so a later push does not make it private again.
+- **11-14 20:36 CST: public GitHub repo pushed**: https://github.com/Ankurneural/solar (branch `main`; author is the GitHub no-reply
+  address of the personal account; the remote URL names `Ankurneural` so the work account's stored credential is never used).
 - Also due by then: final selection of A on Kaggle (ref 57901450), report on Overleaf, public GitHub repo.
 
 ## Final decision (11-12: one selection only, so A is the final submission and B the efficient variant)

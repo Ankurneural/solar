@@ -147,7 +147,10 @@ cost of A buys a small but real gain that the two-decimal public score cannot re
 25\,s per image).
 
 \section{Reproducibility and integrity}
-Code (MIT): \todo{repo URL}; a notebook reproduces the submission from the released checkpoints.
+Code (MIT): \url{https://github.com/Ankurneural/solar}. A public Kaggle notebook
+(\url{https://www.kaggle.com/code/ankurparmar/solarfragments-reproduce}) reproduces configuration B end to end from the
+released checkpoints (\url{https://www.kaggle.com/datasets/ankurparmar/solarfragments-weights}); configuration A uses the
+same code and checkpoints but needs about 24\,h on a Kaggle T4, so it is run locally (56\,min on an RTX 4090).
 The public MAGFiLO release contains labels for 139 of the 180 test images. On the training set, copying
 one released annotation set per frame scores PQ 0.757, which explains public scores near 0.70.
 We used neither these labels nor any ground truth beyond the training set.
