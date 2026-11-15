@@ -1,0 +1,79 @@
+# Baseline: full-disk at 1024, U-Net/ResNet34, mask + boundary + spine heads,
+# soft (annotator-averaged) targets, PQ-based model selection.
+
+seed: 42
+
+data:
+  root: data/MAGFiLO_1.0_Kaggle_2026
+  train_json: data/MAGFiLO_1.0_Kaggle_2026/train/MAGFiLO_1.0_Annotations_kaggle2026_train.json
+  train_images: data/MAGFiLO_1.0_Kaggle_2026/train/train_images
+  test_images: data/MAGFiLO_1.0_Kaggle_2026/test/test_images
+  cache_dir: data/cache
+  clahe_clip: 0.0          # >0 applies CLAHE after limb flattening
+  disk_prior: true         # trust Otsu disk detection only if it agrees with GONG's fixed geometry
+  n_folds: 5
+  group_days: 14           # observations within the same 14-day window share a fold
+  mode: full               # full (whole disk resized) | crop (windows at `scale`)
+  input_size: 1024         # mode=full
+  scale: 1.0               # mode=crop: 1.0 = native 2048
+  crop_size: 768           # mode=crop
+  pos_frac: 0.7            # mode=crop: crops centred on a filament
+  repeats: 1               # dataset passes per epoch
+  boundary_px: 3           # outline band width at training resolution
+  spine_px: 5              # spine line width at training resolution
+
+model:
+  arch: unet               # smp: unet | unetplusplus | upernet | segformer | manet | deeplabv3plus
+  encoder: resnet34        # try: tu-convnext_tiny, efficientnet-b4, mit_b2, tu-efficientnetv2_s
+  encoder_weights: imagenet
+  heads: [mask, boundary, spine]
+
+loss:
+  cldice_iters: 10
+  heads:
+    mask:     {bce: 1.0, dice: 0.5, cldice: 0.0}   # public reports: clDice/Lovasz hurt calibration
+    boundary: {bce: 0.5, dice: 0.25}
+    spine:    {bce: 0.5, dice: 0.5}
+
+augment:
+  scale: [0.9, 1.1]
+  affine_p: 0.7
+  blur_p: 0.3
+  noise_p: 0.3
+
+train:
+  epochs: 40
+  batch_size: 4
+  grad_accum: 2
+  num_workers: 6
+  lr: 0.0005
+  weight_decay: 0.0001
+  warmup_epochs: 1
+  grad_clip: 1.0
+  amp: true                # bf16 autocast
+  ema_decay: 0.998         # 0/null disables EMA
+  val_every: 2
+  val_eval_size: 1024      # PQ during training at 1024 (fast); final scoring at 2048
+
+infer:
+  tta: hflip               # none | hflip | flip4 | d4 (used for validation too; pass --tta d4 to infer.py)
+  overlap: 192             # mode=crop sliding window
+  batch_size: 4
+
+# Defaults; tune_postprocess.py writes the tuned values next to the run.
+# Pixel values are in native 2048-px units at any working resolution.
+postprocess:
+  threshold: 0.45
+  disk_margin: 0.01
+  grouping: cc             # cc | spine
+  spine_threshold: 0.5
+  boundary_cut: 0.0
+  close_px: 0
+  merge_px: 10
+  min_area: 600
+  min_score: 0.55
+  grow_px: 0
+  max_instances: 40
+
+paths:
+  out_dir: runs/baseline

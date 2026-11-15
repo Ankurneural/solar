@@ -1,0 +1,12 @@
+# C3: crop2048 with a ConvNeXt-S encoder (Meta ImageNet-22k -> 1k): the heavier sibling of C2 (ConvNeXt-T).
+#   curl -L -o weights/convnext_small_22k_1k_224.pth https://dl.fbaipublicfiles.com/convnext/convnext_small_22k_1k_224.pth
+inherit: crop2048_convnext.yaml
+
+model:
+  encoder: tu-convnext_small
+  encoder_kwargs:
+    pretrained_cfg_overlay:
+      file: weights/convnext_small_22k_1k_224.pth
+
+paths:
+  out_dir: runs/crop2048_convnext_small

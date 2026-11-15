@@ -1,0 +1,22 @@
+# B1: full-disk 1024 with a ConvNeXt-T encoder (Meta ImageNet-22k weights).
+# B0 (ResNet34, full disk) adds a lot in blends by removing FPs with global context;
+# a stronger encoder on the same view should add more.
+inherit: baseline.yaml
+
+model:
+  arch: unet
+  encoder: tu-convnext_tiny
+  encoder_weights: imagenet
+  encoder_kwargs:
+    pretrained_cfg_overlay:
+      file: weights/convnext_tiny_22k_1k_224.pth
+
+train:
+  epochs: 50
+  batch_size: 2
+  grad_accum: 4
+  lr: 0.0002
+  weight_decay: 0.01
+
+paths:
+  out_dir: runs/full1024_convnext

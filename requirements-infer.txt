@@ -1,0 +1,12 @@
+# Inference-only dependencies (Kaggle reproduction notebook). torch/torchvision come from the Kaggle image.
+# Same versions as requirements.txt, which pins the full training environment.
+numpy==2.2.6
+scipy==1.15.3
+pandas==2.3.3
+scikit-learn==1.7.2
+opencv-python-headless==5.0.0.93
+pycocotools==2.0.11
+segmentation_models_pytorch==0.5.0
+timm==1.0.30
+PyYAML==6.0.3
+tqdm==4.70.1

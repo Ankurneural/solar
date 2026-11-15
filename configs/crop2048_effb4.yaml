@@ -1,0 +1,15 @@
+# C2: crop2048 with an EfficientNet-B4 encoder (a different family from C1's ResNet34,
+# for ensemble diversity) and 40 epochs (C1 fold 0 was still improving at epoch 30).
+# Hugging Face downloads are blocked on this network; smp's efficientnet-b4 weights load from GitHub.
+inherit: crop2048.yaml
+
+model:
+  arch: unet
+  encoder: efficientnet-b4
+
+train:
+  epochs: 40
+  lr: 0.0004
+
+paths:
+  out_dir: runs/crop2048_effb4

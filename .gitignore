@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+.venv/
+.ipynb_checkpoints/
+data/
+runs/
+*.pt
+*.zip
+.env
+kaggle.json
+.venv-kaggle/
+weights/
+# figures derived from the CC BY-NC competition images
+*_example.jpg
+.pytest_cache/

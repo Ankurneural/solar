@@ -1,0 +1,153 @@
+% Draft body for the competition's ACM sigconf Overleaf template (overleaf.com/read/vjztpvrnbrdh).
+% Paste the sections into the template; keep its fixed title/subtitle/intro/acknowledgment text.
+% Limit: 4 pages excluding references. \todo{} marks numbers to update for the final submission.
+% Sources: docs/EXPERIMENTS.md (OOF), runs/jobs/submissions.csv (LB), docs/COMPETITION_NOTES.md.
+\newcommand{\todo}[1]{\textcolor{red}{#1}}
+
+\begin{abstract}
+We segment solar filaments in full-disk GONG H$\alpha$ images in two stages: dense U-Net probability
+maps at native resolution, then learned instance selection and per-instance refinement. Stage 1
+averages ConvNeXt U-Nets trained on native-resolution crops ($512^2$ and $768^2$) with full-disk
+$1024^2$ models, all trained on soft annotator-consensus targets. Stage 2 builds a tree of candidate
+instances from 10 threshold levels, scores each with a gradient-boosted model and a crop refiner aligned
+with the filament's principal axis, and keeps the subset that maximises expected panoptic quality. With
+5-fold time-grouped cross-validation the accuracy configuration (8 stage-1 members) reaches an
+out-of-fold PQ of 0.467 at 18.7\,s per image and the efficient configuration (3 members) 0.462 at
+3.3\,s per image on one GPU (one expert scored against the other experts: 0.336). Both score 0.40 on
+the public leaderboard, using only the supplied test image.
+\end{abstract}
+
+\section{Data, metric and what limits the score}
+The training set has 707 frames from six GONG sites (2011--2022) with 1,154 annotation sets by 37
+annotators; 58\% of the frames have a single annotator. PQ is computed against every annotation set
+separately and pooled, so a prediction is rewarded for matching each annotator's filament with
+IoU $>0.5$. Two properties of the labels shape the design.
+\textbf{(1) Annotators disagree.} One expert scored against the others reaches PQ 0.336 (SQ 0.634,
+RQ 0.530). Annotators draw 4.3 to 10.5 filaments per frame on average, their median filament area
+differs by $2\times$, and the annotator of a frame cannot be inferred from its site or year.
+We therefore predict the \emph{consensus}: targets are the per-pixel mean over annotators.
+\textbf{(2) The annotation protocol} \cite{magfilo} skips filaments beyond $\pm70^\circ$ from the
+central meridian, small grouped filaments and too-faint ones, and asks for tight, single-piece,
+hole-free outlines that include barbs. In the training labels only 0.05\% of filaments lie beyond
+$70^\circ$ longitude. Whether a fragmented filament is one instance or several is annotator-dependent
+and is the main source of merge/split errors.
+
+\section{Method}
+\begin{figure*}[t]
+\includegraphics[width=\textwidth]{fig1_pipeline.pdf}
+\caption{Top: one out-of-fold frame through the pipeline (native-resolution crop around its largest filament).
+(c) stage-1 ensemble probability; (d) the candidate tree is the nested set of connected components over
+10 thresholds (three shown); (e) the selected and refined filament (green) against the outlines of the three
+annotators. The candidate on the right, which no annotator drew, is rejected by the scorer.
+Bottom: pipeline stages. Produced by \texttt{tools/make\_figure\_pipeline.py}.}
+\label{fig:pipeline}
+\end{figure*}
+
+\paragraph{Pre-processing.} Each frame is disk-fitted, limb-darkening corrected with a radial profile
+and contrast-normalised. Only the supplied image is used.
+
+\paragraph{Stage 1: probability maps.} U-Nets with three heads (filament mask, outline band, spine),
+trained with BCE + soft Dice on soft consensus targets. The main members see native-resolution crops
+($512^2$ or $768^2$ of the $2048^2$ frame; Hann-blended sliding-window inference); full-disk $1024^2$
+members add global context and remove false positives. Encoders are ImageNet-22k ConvNeXt.
+We evaluated two configurations; A is our final submission and B is its efficient variant
+(also scored on the public leaderboard). \textbf{A (accuracy):} 8 members $\times$ 5 folds (three seeds of
+ConvNeXt-T and one ConvNeXt-S on $512^2$ crops, ConvNeXt-T and ConvNeXt-B on $768^2$ crops, two full-disk
+ConvNeXt-T seeds), with the 8 dihedral transforms as test-time augmentation.
+\textbf{B (efficiency):} 3 members $\times$ 5 folds (two $512^2$-crop ConvNeXt-T seeds, one full-disk
+ConvNeXt-T) with horizontal-flip augmentation; its scorer and $\tau$ are tuned on flip-only OOF maps.
+
+\paragraph{Stage 2: candidate tree and learned selection.} Thresholding the ensemble map at 10 levels
+(0.1--0.9) gives nested connected components, about 100 candidates per frame. A histogram GBM predicts
+each candidate's mean over annotators of IoU$\cdot[\mathrm{IoU}>0.5]$ from 42 features (probability
+statistics, shape, boundary sharpness, image contrast, disk position, tree context). Keeping a candidate
+with expected contribution $q$ raises PQ iff $q>\mathrm{PQ}/2$; an exact dynamic program on the tree keeps
+at most one candidate per root-to-leaf path with $q>\tau$.
+
+\paragraph{Rotated crop refiner.} Each candidate is re-segmented by a ResNet34 U-Net on a
+$384\times160$ crop aligned with its principal axis (inputs: image, stage-1 probability, candidate mask),
+which predicts the consensus outline of \emph{this} filament and a score. Axis-aligned crops spend most
+pixels on background for thin, tilted filaments. The final score blends the GBM and refiner scores;
+refined masks are painted in score order without overlap.
+
+\section{Validation protocol}
+All stages are validated out-of-fold on 5 folds grouped by 14-day windows, so a filament never appears in
+both training and validation. Downstream stages (scorer, refiner) are trained only on OOF maps. PQ is
+computed with a re-implementation tested against the organisers' notebook. The OOF$\rightarrow$public offset
+is a stable $-0.04$ to $-0.07$ (the public score is rounded to two decimals), and every change that improved OOF improved or tied the public score
+(Table~\ref{tab:ablation}).
+
+\section{Results}
+\begin{table}[t]
+\caption{Ablation. OOF PQ over 707 frames; public leaderboard on $\sim$90 test frames (2 decimals).}
+\label{tab:ablation}
+\small
+\begin{tabular}{lcc}
+\toprule
+Pipeline & OOF PQ & Public \\
+\midrule
+ResNet34, full disk $1024^2$, threshold & 0.363 & 0.31 \\
++ learned candidate selection (GBM) & 0.378 & 0.32 \\
+ConvNeXt-T, $512^2$ native crops, threshold & 0.425 & 0.37 \\
+Ensemble (crops + full disk), threshold & 0.445 & 0.38 \\
++ second crop-model seed, threshold & 0.449 & 0.39 \\
++ GBM selection + rotated refiner & 0.465 & 0.40 \\
++ $768^2$ crops, ConvNeXt-B, more seeds (8 members) & 0.467 & 0.40 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{What helped.} Native resolution (+0.03 over $1024^2$ full disk), ConvNeXt-T over ResNet34
+(+0.017 on fold 0), a full-disk member against false positives, a second crop-model seed (+0.004),
+learned selection instead of one threshold, and refining each instance in a rotated frame (+0.005).
+$768^2$ crops gain +0.007 as a single model but nothing once blended with a full-disk member, which
+already supplies the context.
+\paragraph{What did not help.} An object-level BiCC loss (only shifted calibration), larger encoders
+(ConvNeXt-S/B: within seed noise once blended), a ResNet50 refiner, grouping fragments before selection,
+disk-longitude features (the GBM already used disk position), and sub-pixel target offsets.
+\paragraph{Test-time choices checked on the public set.} Moving $\tau$ from the OOF optimum to 0.22 or
+0.38, or dropping the refiner, each cost 0.01 on the public set, so the OOF optimum transfers.
+Horizontal-flip TTA instead of the 8 dihedral views tied (0.40) at half the cost.
+
+\section{Morphology and errors}
+\begin{figure}[t]
+% files: runs/figures/v11_refined/oof_20110429135554Bh_zoom1.jpg, oof_20110128174814Mh_zoom0.jpg
+\includegraphics[width=0.49\columnwidth]{oof_20110429135554Bh_zoom1.jpg}\hfill
+\includegraphics[width=0.49\columnwidth]{oof_20110128174814Mh_zoom0.jpg}
+\caption{Native-resolution out-of-fold crops (configuration A). The three annotators' outlines (yellow, cyan,
+magenta) disagree on barbs and ends; the refined prediction (green = matched) follows the consensus body.}
+\label{fig:morphology}
+\end{figure}
+On the final OOF predictions of configuration A (organisers' metric, 1,154 annotation sets) the system reaches a mean
+foreground Dice of 0.669 per annotation set (one expert against the others: 0.612), a median matched IoU
+of 0.69 (expert: 0.63), and 64.7\% of GT filaments matched with IoU $>0.5$ (21.6\% untouched, 3.8\%
+with IoU $<0.3$, 10.0\% near misses at 0.3--0.5). Fragmentation is rare: 2.5\% of GT filaments touch
+more than one prediction and 1.9\% of predictions touch more than one GT filament (expert: 3.7\% / 2.6\%).
+Missed filaments are mostly small ($<700$\,px) or drawn by only one of several annotators: in an earlier
+error analysis of the ensemble, filaments drawn by all annotators were matched 81\% of the time, those
+drawn by one of several 18\%.
+
+\section{Efficiency}
+Test inference on one RTX 4090, uncached, per $2048^2$ image:
+\begin{tabular}{lccc}
+\toprule
+Configuration & s/image & OOF PQ & Public \\
+\midrule
+8 stage-1 models $\times$ 5 folds, D4 TTA & 18.7 & 0.467 & 0.40 \\
+8 models $\times$ 5 folds, hflip TTA & 6.7 & -- & 0.40 \\
+3 models $\times$ 5 folds, hflip TTA (tuned on hflip OOF maps) & 3.3 & 0.462 & 0.40 \\
+\bottomrule
+\end{tabular}
+Stage 1 dominates the cost: per image, the fast configuration spends 0.2\,s on pre-processing, 1.4\,s on
+stage 1 (two 512-crop ConvNeXt-T members 0.65\,s each, the full-disk member 0.1\,s), 0.1\,s on candidates and
+GBM, and 0.8\,s on the five refiners; the rest is image I/O and RLE encoding. D4 TTA costs 3.6$\times$ hflip
+for the crop members. A paired bootstrap over the 14-day groups of the OOF set puts A $-$ B at
+$+0.0045$ PQ (95\% interval $+0.0016$ to $+0.0073$; A is ahead on all five folds), so the 5.7$\times$
+cost of A buys a small but real gain that the two-decimal public score cannot resolve. Refiner batches are padded to a fixed size, so cuDNN autotuning runs once (it had cost
+25\,s per image).
+
+\section{Reproducibility and integrity}
+Code (MIT): \todo{repo URL}; a notebook reproduces the submission from the released checkpoints.
+The public MAGFiLO release contains labels for 139 of the 180 test images. On the training set, copying
+one released annotation set per frame scores PQ 0.757, which explains public scores near 0.70.
+We used neither these labels nor any ground truth beyond the training set.

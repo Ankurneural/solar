@@ -1,0 +1,21 @@
+# C2: crop2048 with a ConvNeXt-T encoder (ImageNet-22k -> 1k, Meta's official checkpoint).
+# A different family from C1's ResNet34 for ensemble diversity; the best public honest
+# pipeline also ensembles a ConvNeXt-T U-Net. 40 epochs: C1 fold 0 still improved at 30.
+#   curl -L -o weights/convnext_tiny_22k_1k_224.pth https://dl.fbaipublicfiles.com/convnext/convnext_tiny_22k_1k_224.pth
+inherit: crop2048.yaml
+
+model:
+  arch: unet
+  encoder: tu-convnext_tiny
+  encoder_weights: imagenet
+  encoder_kwargs:
+    pretrained_cfg_overlay:
+      file: weights/convnext_tiny_22k_1k_224.pth
+
+train:
+  epochs: 40
+  lr: 0.0002
+  weight_decay: 0.01
+
+paths:
+  out_dir: runs/crop2048_convnext

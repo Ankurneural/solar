@@ -1,0 +1,8 @@
+{
+  "title": "SolarFragments weights",
+  "id": "ankurparmar/solarfragments-weights",
+  "subtitle": "Checkpoints and code for Solar Filament Segmentation 2026",
+  "description": "Inference code (MIT), stage-1 U-Net checkpoints, GBM scorer, rotated-crop refiners and pinned wheels needed to reproduce both final submissions of the SolarFragments entry. Trained only on the competition training labels (no public MAGFiLO labels, no other ground truth). See the reproduction notebook.",
+  "licenses": [{"name": "CC-BY-NC-SA-4.0"}],
+  "keywords": ["computer vision", "image segmentation", "astronomy"]
+}

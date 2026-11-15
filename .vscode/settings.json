@@ -1,0 +1,23 @@
+{
+    "files.watcherExclude": {
+        "**/data/**": true,
+        "**/runs/**": true,
+        "**/weights/**": true,
+        "**/.venv/**": true,
+        "**/.venv-kaggle/**": true
+    },
+    "search.exclude": {
+        "**/data/**": true,
+        "**/runs/**": true,
+        "**/weights/**": true,
+        "**/.venv/**": true,
+        "**/.venv-kaggle/**": true
+    },
+    "python.analysis.exclude": [
+        "**/data/**",
+        "**/runs/**",
+        "**/weights/**",
+        "**/.venv/**",
+        "**/.venv-kaggle/**"
+    ]
+}

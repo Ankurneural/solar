@@ -1,0 +1,25 @@
+# Native-resolution variant: 512 crops from the 2048 frame, sliding-window inference.
+# Keeps thin barbs (median filament width ~11 px at 2048, ~5 px at 1024).
+inherit: baseline.yaml
+
+data:
+  mode: crop
+  scale: 1.0
+  crop_size: 512
+  pos_frac: 0.7
+  repeats: 4
+  boundary_px: 5
+  spine_px: 9
+
+train:
+  batch_size: 8
+  grad_accum: 1
+  epochs: 30
+  val_eval_size: 2048
+
+infer:
+  overlap: 128
+  batch_size: 8
+
+paths:
+  out_dir: runs/crop2048
